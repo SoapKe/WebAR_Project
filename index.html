@@ -13,8 +13,8 @@
     // NONE Preferred camera resolution.
     var constraints = {
         audio: false,
-//        video: { facingMode: { exact: "environment" } }
-        video: true
+        video: { facingMode: { exact: "environment" } }
+        // video: true
     };
 
     navigator.mediaDevices.getUserMedia(constraints)
