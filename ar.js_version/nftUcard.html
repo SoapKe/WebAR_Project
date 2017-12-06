@@ -12,7 +12,7 @@
         }
         .portrait canvas {
             transform-origin: 0 0;
-            transform: rotate(-90deg) translateX(-100%);
+            /*transform: rotate(-90deg) translateX(-100%);*/
         }
         .desktop canvas {
             /*transform: scale(-1, 1);*/
@@ -21,7 +21,7 @@
 </head>
 <body>
 
-<h1>NFT marker example with Three.js</h1>
+<h1>AR NFT ---- UCard</h1>
 <p>On Chrome on Android, tap the screen to start playing video stream.</p>
 
 <!-- three.js library -->
@@ -42,7 +42,7 @@
 
     window.ARThreeOnLoad = function() {
 
-        ARController.getUserMediaThreeScene({maxARVideoSize: 640, cameraParam: 'data/camera_para.dat',
+        ARController.getUserMediaThreeScene({maxARVideoSize: 640, cameraParam: 'data/camera_para.dat', facing: 'environment',
             onSuccess: function(arScene, arController, arCamera) {
 
                 document.body.className = arController.orientation;
@@ -206,7 +206,9 @@
                         reposi = false;
                     }
 
-                    bird.scale.set( s, s, s );
+                    if(bird != null){
+                        bird.scale.set(s, s, s)
+                    }
 
                     var delta = clock.getDelta();
 
