@@ -206,7 +206,9 @@
                         reposi = false;
                     }
 
-                    bird.scale.set( s, s, s );
+                    if(bird != null){
+                        bird.scale.set(s, s, s)
+                    }
 
                     var delta = clock.getDelta();
 
