@@ -1,0 +1,223 @@
+<html>
+<head>
+    <title>AR NFT ---- UCard</title>
+    <meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+    <style>
+        html,body {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            text-align: center;
+            overflow-x: hidden;
+        }
+        .portrait canvas {
+            transform-origin: 0 0;
+        }
+        .desktop canvas {
+            /*transform: scale(-1, 1);*/
+        }
+    </style>
+</head>
+<body>
+
+<h1>AR NFT ---- UCard</h1>
+<p>Kirk XU: My Fourth Year AR Project</p>
+
+<!-- three.js library -->
+<script src="lib/three.js/three.min.js"></script>
+<script src="lib/three.js/VTKLoader.js"></script>
+<script src="lib/three.js/JSONLoader.js"></script>
+
+<!-- jsartoolkit5 library -->
+<script async src="lib/jsartoolkit5/artoolkit.min.js"></script>
+<script async src="lib/jsartoolkit5/artoolkit.three.js"></script>
+
+<!-- utils library -->
+<script src="lib/utils/hammer.min.js"></script>
+<script src="lib/utils/stats.min.js"></script>
+
+
+<script>
+
+    window.ARThreeOnLoad = function() {
+
+        ARController.getUserMediaThreeScene({maxARVideoSize: 640, cameraParam: 'data/camera_para.dat',
+            onSuccess: function(arScene, arController, arCamera) {
+
+                // Initialize Three.js renderer
+                var renderer = new THREE.WebGLRenderer({antialias: true});
+
+                //////////////////////////////////////////////////////////////////////////////////
+                //		WEB LAYOUT CONFIG
+                //////////////////////////////////////////////////////////////////////////////////
+                document.body.className = arController.orientation;
+                if (arController.orientation === 'portrait') {
+                    renderer.setSize(arController.videoWidth, arController.videoHeight)
+                } else {
+                    if (/Android|mobile|iPad|iPhone/i.test(navigator.userAgent)) {
+                        renderer.setSize(arController.videoWidth, arController.videoHeight);
+                    } else {
+                        renderer.setSize(arController.videoWidth * 1.5, arController.videoHeight * 1.5);
+                        document.body.className += ' desktop';
+                    }
+                }
+
+                document.getElementsByTagName("body")[0].appendChild(renderer.domElement);
+
+
+                //////////////////////////////////////////////////////////////////////////////////
+                //		Bird Model
+                //////////////////////////////////////////////////////////////////////////////////
+
+                var modelX, modelY, modelZ;
+                modelX = 40;
+                modelY = 40;
+                modelZ = 40;
+                fly = false;
+                reposi = false;
+
+                var s; // scale factor
+                var bird;
+                var mixers = [];
+                var loader = new THREE.JSONLoader();
+
+                loader.load( 'models/animated/flamingo.js', function( geometry ) {
+
+                    var material = new THREE.MeshPhongMaterial({
+                        color: 0xffffff,
+                        specular: 0xffffff,
+                        shininess: 20,
+                        morphTargets: true,
+                        vertexColors: THREE.FaceColors,
+                        flatShading: true
+                    });
+
+                    var mesh = new THREE.Mesh( geometry, material );
+
+                    s = 0.8;
+                    mesh.scale.set( s, s, s );
+                    mesh.position.x = modelX;
+                    mesh.position.y = modelY;
+                    mesh.position.z = modelZ;
+
+                    mesh.rotation.x = 90;
+                    mesh.rotation.y = -90;
+
+                    // store model variable
+                    bird = mesh;
+
+                    var mixer = new THREE.AnimationMixer( mesh );
+                    mixer.clipAction( geometry.animations[ 0 ] ).setDuration( 1 ).play();
+                    mixers.push( mixer );
+                } );
+
+
+                //////////////////////////////////////////////////////////////////////////////////
+                //		In-web interaction by Hammer.js
+                //////////////////////////////////////////////////////////////////////////////////
+                var hammer = new Hammer(renderer.domElement);
+                hammer.get('pinch').set({ enable: true });
+
+                hammer.on('tap', function(ev) {
+                    fly = true;
+                    console.log(ev);
+                });
+
+                hammer.on('doubletap', function(ev) {
+                    reposi = true;
+                    console.log(ev);
+                });
+
+
+                //////////////////////////////////////////////////////////////////////////////////
+                //		LIGHT CONFIG
+                // Refer to three.js demo configuration
+                //////////////////////////////////////////////////////////////////////////////////
+
+                var hemiLight = new THREE.HemisphereLight( 0xffffff, 0xffffff, 0.6 );
+                hemiLight.color.setHSL( 0.6, 1, 0.6 );
+                hemiLight.groundColor.setHSL( 0.095, 1, 0.75 );
+                hemiLight.position.set( 0, 50, 0 );
+                arScene.camera.add( hemiLight );
+
+
+                var dirLight = new THREE.DirectionalLight( 0xffffff, 1 );
+                dirLight.color.setHSL( 0.1, 1, 0.95 );
+                dirLight.position.set( -1, 1.75, 1 );
+                dirLight.position.multiplyScalar( 30 );
+
+                dirLight.castShadow = true;
+
+                dirLight.shadow.mapSize.width = 2048;
+                dirLight.shadow.mapSize.height = 2048;
+
+                arScene.camera.add(dirLight)
+                arScene.camera.add(dirLight.target)
+
+
+                //////////////////////////////////////////////////////////////////////////////////
+                //		NATURE FEATURE MARKER
+                //	Generate by [artoolkit], Desktop ver
+                //////////////////////////////////////////////////////////////////////////////////
+                arController.loadNFTMarker('data/dataNFT/Kuma_scan', function(markerId) {
+                    var markerRoot = arController.createThreeNFTMarker(markerId);
+                    markerRoot.add(bird);
+                    arScene.scene.add(markerRoot);
+                });
+
+
+                // STATS util for monitoring resource
+                var stats;
+                stats = new Stats();
+                document.getElementsByTagName("body")[0].appendChild( stats.dom );
+
+                //////////////////////////////////////////////////////////////////////////////////
+                //		RENDER FUNCTION
+                //////////////////////////////////////////////////////////////////////////////////
+                var clock = new THREE.Clock();
+                var tick = function() {
+                    arScene.process();
+
+                    requestAnimationFrame(tick);
+
+                    // bird fly
+                    if(fly == true){
+                        bird.position.x -= 1
+                        // bird.position.y -= 1
+                        bird.position.z += 1
+                    }
+
+                    // bird model repostion
+                    if(reposi == true){
+                        bird.position.x = modelX;
+                        bird.position.y = modelY;
+                        bird.position.z = modelZ;
+                        reposi = false;
+                    }
+
+                    // play animation
+                    var delta = clock.getDelta();
+                    for ( var i = 0; i < mixers.length; i ++ ) {
+                        mixers[ i ].update( delta );
+                    }
+
+                    // update
+                    stats.update();
+                    arScene.renderOn(renderer);
+                };
+
+                tick();
+
+            }});
+
+        delete window.ARThreeOnLoad;
+
+    };
+
+    if (window.ARController && ARController.getUserMediaThreeScene) {
+        ARThreeOnLoad();
+    }
+</script>
+
+</body>
+</html>
