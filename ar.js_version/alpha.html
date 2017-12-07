@@ -1,18 +1,22 @@
 <!DOCTYPE html>
 <meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+
 <!-- three.js library -->
-<script src='js/three.min.js'></script>
-<script src="js/stats.min.js"></script>
-<script src="js/TrackballControls.js"></script>
-<script src="js/VTKLoader.js"></script>
+<script src="lib/three.js/three.min.js"></script>
+<script src="lib/three.js/VTKLoader.js"></script>
+<script src="lib/three.js/JSONLoader.js"></script>
+
 <!-- ar.js -->
-<script src="js/ar.js"></script>
+<script src="lib/ar.js/ar.js"></script>
 
+<!-- utils library -->
+<script src="lib/utils/hammer.min.js"></script>
+<script src="lib/utils/stats.min.js"></script>
 
-
-
-<body style='margin : 0px; overflow: hidden; font-family: Monospace;'><div style='position: absolute; top: 10px; width:100%; text-align: center; z-index: 1;'>
-	AR Application runs in web browser ---- Alpha Demo
+<body style='margin : 0px; overflow: hidden; font-family: Monospace;'>
+<div style='position: absolute; top: 10px; width:100%; text-align: center; z-index: 1;'>
+		AR Application runs in web browser
+				---- Single Marker Demo
 </div><script>
 	//////////////////////////////////////////////////////////////////////////////////
 	//		Init
@@ -47,7 +51,7 @@
 
 	////////////////////////////////////////////////////////////////////////////////
 	//          handle arToolkitSource
-	////////////////////////////////////////////////////////////////////////////////·
+	////////////////////////////////////////////////////////////////////////////////
 
 	var arToolkitSource = new THREEx.ArToolkitSource({
 		// to read from the webcam 
@@ -87,20 +91,20 @@
 	arToolkitContext.init(function onCompleted(){
 		// copy projection matrix to camera
 		camera.projectionMatrix.copy( arToolkitContext.getProjectionMatrix() );
-	});
+	})
 
 	// update artoolkit on every frame
 	onRenderFcts.push(function(){
 		if( arToolkitSource.ready === false )	return
 
 		arToolkitContext.update( arToolkitSource.domElement )
-	});
-	
-	
+	})
+
+
 	////////////////////////////////////////////////////////////////////////////////
 	//          Create a ArMarkerControls
 	////////////////////////////////////////////////////////////////////////////////
-	
+
 	var markerRoot = new THREE.Group
 	scene.add(markerRoot)
 	var artoolkitMarker = new THREEx.ArMarkerControls(arToolkitContext, markerRoot, {
@@ -126,32 +130,130 @@
 	var arWorldRoot = smoothedRoot
 
 
-    // light
+    // -------------------- bird model -------------------- //
+    var modelX, modelY, modelZ;
+    modelX = 0;
+    modelY = 0.7;
+    modelZ = 0;
+    fly = false;
+    reposi = false;
 
-    var dirLight = new THREE.DirectionalLight( 0xffffff );
-    dirLight.position.set( 200, 200, 1000 ).normalize();
+    var s;
+    var bird;
+    var mixers = [];
+    var loader = new THREE.JSONLoader();
 
-    camera.add( dirLight );
-    camera.add( dirLight.target );
+    loader.load( 'models/animated/flamingo.js', function( geometry ) {
 
-	// add a bunny with vtk
-	var bunny;
-
-    var material = new THREE.MeshLambertMaterial( { color: 0x8A2BE2, side: THREE.DoubleSide } );
-
-    var loader = new THREE.VTKLoader();
-    loader.load( "models/vtk/bunny.vtk", function ( geometry ) {
-
-        geometry.center();
-        geometry.computeVertexNormals();
-
+        var material = new THREE.MeshPhongMaterial( { color: 0xffffff, specular: 0xffffff, shininess: 20, morphTargets: true, vertexColors: THREE.FaceColors, flatShading: true } );
         var mesh = new THREE.Mesh( geometry, material );
-        mesh.position.y = 0.7
-        mesh.scale.multiplyScalar( 10 );
-        bunny = mesh
-        arWorldRoot.add( mesh );
 
+        s = 0.01;
+        mesh.scale.set( s, s, s );
+        mesh.position.x = modelX;
+        mesh.position.y = modelY;
+        mesh.position.z = modelZ;
+
+        // mesh.rotation.x = 180;
+        mesh.rotation.y = 180;
+        // mesh.rotation.z = 180;
+
+        mesh.castShadow = true;
+        mesh.receiveShadow = true;
+
+        // store model variable
+        bird = mesh;
+
+        var mixer = new THREE.AnimationMixer( mesh );
+        mixer.clipAction( geometry.animations[ 0 ] ).setDuration( 1 ).play();
+        mixers.push( mixer );
+
+        arWorldRoot.add( bird );
     } );
+
+    // -------------------- hammer.js -------------------- //
+    var hammer = new Hammer(renderer.domElement);
+    hammer.get('pinch').set({ enable: true });
+    // hammer.get('rotate').set({ enable: true });
+
+    hammer.on('pinch', function(ev) {
+        if (ev.type === 'pinchstart') {
+            s = s * ev.scale;
+        }
+        console.log(ev);
+    });
+
+    hammer.on('tap', function(ev) {
+        fly = true;
+        console.log(ev);
+    });
+
+    hammer.on('doubletap', function(ev) {
+        reposi = true;
+        console.log(ev);
+    });
+
+
+    // -------------------- LIGHT -------------------- //
+
+    var hemiLight = new THREE.HemisphereLight( 0xffffff, 0xffffff, 0.6 );
+    hemiLight.color.setHSL( 0.6, 1, 0.6 );
+    hemiLight.groundColor.setHSL( 0.095, 1, 0.75 );
+    hemiLight.position.set( 0, 50, 0 );
+    scene.add( hemiLight );
+
+
+    var dirLight = new THREE.DirectionalLight( 0xffffff, 1 );
+    dirLight.color.setHSL( 0.1, 1, 0.95 );
+    dirLight.position.set( -1, 1.75, 1 );
+    dirLight.position.multiplyScalar( 30 );
+
+    dirLight.castShadow = true;
+
+    dirLight.shadow.mapSize.width = 2048;
+    dirLight.shadow.mapSize.height = 2048;
+
+    scene.add(dirLight);
+    scene.add(dirLight.target);
+
+    var d = 50;
+
+    dirLight.shadow.camera.left = -d;
+    dirLight.shadow.camera.right = d;
+    dirLight.shadow.camera.top = d;
+    dirLight.shadow.camera.bottom = -d;
+
+    dirLight.shadow.camera.far = 3500;
+    dirLight.shadow.bias = -0.0001;
+
+
+    //
+    // // light
+    //
+    // var dirLight = new THREE.DirectionalLight( 0xffffff );
+    // dirLight.position.set( 200, 200, 1000 ).normalize();
+    //
+    // camera.add( dirLight );
+    // camera.add( dirLight.target );
+    //
+    // // add a bunny with vtk
+    // var bunny;
+    //
+    // var material = new THREE.MeshLambertMaterial( { color: 0x8A2BE2, side: THREE.DoubleSide } );
+    //
+    // var loader = new THREE.VTKLoader();
+    // loader.load( "models/vtk/bunny.vtk", function ( geometry ) {
+    //
+    //     geometry.center();
+    //     geometry.computeVertexNormals();
+    //
+    //     var mesh = new THREE.Mesh( geometry, material );
+    //     mesh.position.y = 0.7
+    //     mesh.scale.multiplyScalar( 10 );
+    //     bunny = mesh
+    //     arWorldRoot.add( mesh );
+    //
+    // } );
 
 //	// add a torus knot
 //	var geometry	= new THREE.CubeGeometry(1,1,1);
@@ -170,11 +272,11 @@
 //	mesh.position.y	= 0.5
 //	arWorldRoot.add( mesh );
 	
-	onRenderFcts.push(function(){
-        if(bunny != null){
-            bunny.rotation.y += 0.005
-        }
-	})
+	// onRenderFcts.push(function(){
+     //    if(bunny != null){
+     //        bunny.rotation.y += 0.005
+     //    }
+	// })
 
 	//////////////////////////////////////////////////////////////////////////////////
 	//		render the whole thing on the page
@@ -182,10 +284,43 @@
 	var stats = new Stats();
 	document.body.appendChild( stats.dom );
 	// render the scene
+
+    var clock = new THREE.Clock();
 	onRenderFcts.push(function(){
-		renderer.render( scene, camera );
-		stats.update();
+
+
+
+        if(fly == true){
+            bird.position.x -= 0.005;
+            bird.position.y += 0.005;
+            // bird.position.z += 0.0001
+        }
+
+        if(reposi == true){
+            bird.position.x = modelX;
+            bird.position.y = modelY;
+            bird.position.z = modelZ;
+
+            reposi = false;
+        }
+
+        if(bird != null){
+            bird.scale.set(s, s, s)
+        }
+
+
+        var delta = clock.getDelta();
+
+        for ( var i = 0; i < mixers.length; i ++ ) {
+
+            mixers[ i ].update( delta );
+
+        }
+
+        stats.update();
+        renderer.render( scene, camera );
 	})
+
 
 	// run the rendering loop
 	var lastTimeMsec= null
