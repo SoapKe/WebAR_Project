@@ -1,6 +1,6 @@
 <html>
 <head>
-	<title>Pattern marker example with Three.js</title>
+	<title>AR NFT ---- UCard</title>
 	<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
 	<style>
 		html,body {
@@ -11,9 +11,7 @@
 			overflow-x: hidden;
 		}
 		.portrait canvas {
-			/*transform: scale(-1, 1);*/
 			transform-origin: 0 0;
-			/*transform: rotate(-90deg) translateX(-100%);*/
 		}
 		.desktop canvas {
 			/*transform: scale(-1, 1);*/
@@ -23,7 +21,7 @@
 <body>
 
 <h1>AR NFT ---- UCard</h1>
-<p>On Chrome on Android, tap the screen to start playing video stream.</p>
+<p>Kirk XU: My Fourth Year AR Project</p>
 
 <!-- three.js library -->
 <script src="lib/three.js/three.min.js"></script>
@@ -46,22 +44,17 @@
 		ARController.getUserMediaThreeScene({maxARVideoSize: 640, cameraParam: 'data/camera_para.dat',
 			onSuccess: function(arScene, arController, arCamera) {
 
-				document.body.className = arController.orientation;
-
+				// Initialize Three.js renderer
 				var renderer = new THREE.WebGLRenderer({antialias: true});
 
-
-
+				//////////////////////////////////////////////////////////////////////////////////
+				//		WEB LAYOUT CONFIG
+				//////////////////////////////////////////////////////////////////////////////////
+				document.body.className = arController.orientation;
 				if (arController.orientation === 'portrait') {
-					// var w = (window.innerWidth / arController.videoHeight) * arController.videoWidth;
-					// var h = window.innerWidth;
-					// renderer.setSize(w, h);
-
 					renderer.setSize(arController.videoWidth, arController.videoHeight)
-					// renderer.domElement.style.paddingBottom = (w-h) + 'px';
 				} else {
 					if (/Android|mobile|iPad|iPhone/i.test(navigator.userAgent)) {
-						// renderer.setSize(window.innerWidth, (window.innerWidth / arController.videoWidth) * arController.videoHeight);
 						renderer.setSize(arController.videoWidth, arController.videoHeight);
 					} else {
 						renderer.setSize(arController.videoWidth * 1.5, arController.videoHeight * 1.5);
@@ -71,19 +64,11 @@
 
 				document.getElementsByTagName("body")[0].appendChild(renderer.domElement);
 
-				// var rotationV = 0;
-				// var rotationTarget = 0;
-				//
-				// renderer.domElement.addEventListener('click', function(ev) {
-				//  ev.preventDefault();
-				//  rotationTarget += 1;
-				// }, false);
 
+				//////////////////////////////////////////////////////////////////////////////////
+				//		Bird Model
+				//////////////////////////////////////////////////////////////////////////////////
 
-
-
-
-				// -------------------- bird model -------------------- //
 				var modelX, modelY, modelZ;
 				modelX = 40;
 				modelY = 40;
@@ -91,14 +76,22 @@
 				fly = false;
 				reposi = false;
 
-				var s;
+				var s; // scale factor
 				var bird;
 				var mixers = [];
 				var loader = new THREE.JSONLoader();
 
 				loader.load( 'models/animated/flamingo.js', function( geometry ) {
 
-					var material = new THREE.MeshPhongMaterial( { color: 0xffffff, specular: 0xffffff, shininess: 20, morphTargets: true, vertexColors: THREE.FaceColors, flatShading: true } );
+					var material = new THREE.MeshPhongMaterial({ 	
+						color: 0xffffff, 
+						specular: 0xffffff, 
+						shininess: 20, 
+						morphTargets: true, 
+						vertexColors: THREE.FaceColors, 
+						flatShading: true 
+					});
+
 					var mesh = new THREE.Mesh( geometry, material );
 
 					s = 0.8;
@@ -110,29 +103,20 @@
 					mesh.rotation.x = 90;
 					mesh.rotation.y = -90;
 
-					mesh.castShadow = true;
-					mesh.receiveShadow = true;
-
 					// store model variable
 					bird = mesh;
 
 					var mixer = new THREE.AnimationMixer( mesh );
 					mixer.clipAction( geometry.animations[ 0 ] ).setDuration( 1 ).play();
 					mixers.push( mixer );
-
 				} );
 
-				// -------------------- hammer.js -------------------- //
+
+				//////////////////////////////////////////////////////////////////////////////////
+				//		In-web interaction by Hammer.js
+				//////////////////////////////////////////////////////////////////////////////////
 				var hammer = new Hammer(renderer.domElement);
 				hammer.get('pinch').set({ enable: true });
-				// hammer.get('rotate').set({ enable: true });
-
-				hammer.on('pinch', function(ev) {
-					if (ev.type === 'pinchstart') {
-						s = s * ev.scale;
-					}
-					console.log(ev);
-				});
 
 				hammer.on('tap', function(ev) {
 					fly = true;
@@ -145,7 +129,10 @@
 				});
 
 
-				// -------------------- LIGHT -------------------- //
+				//////////////////////////////////////////////////////////////////////////////////
+				//		LIGHT CONFIG
+				// Refer to three.js demo configuration
+				//////////////////////////////////////////////////////////////////////////////////
 
 				var hemiLight = new THREE.HemisphereLight( 0xffffff, 0xffffff, 0.6 );
 				hemiLight.color.setHSL( 0.6, 1, 0.6 );
@@ -167,17 +154,11 @@
 				arScene.camera.add(dirLight)
 				arScene.camera.add(dirLight.target)
 
-				var d = 50;
 
-				dirLight.shadow.camera.left = -d;
-				dirLight.shadow.camera.right = d;
-				dirLight.shadow.camera.top = d;
-				dirLight.shadow.camera.bottom = -d;
-
-				dirLight.shadow.camera.far = 3500;
-				dirLight.shadow.bias = -0.0001;
-
-
+				//////////////////////////////////////////////////////////////////////////////////
+				//		NATURE FEATURE MARKER
+				//	Generate by [artoolkit], Desktop ver
+				//////////////////////////////////////////////////////////////////////////////////
 				arController.loadNFTMarker('data/dataNFT/UCARD_scan', function(markerId) {
 					var markerRoot = arController.createThreeNFTMarker(markerId);
 					markerRoot.add(bird);
@@ -185,44 +166,42 @@
 				});
 
 
-				// STATS
+				// STATS util for monitoring resource
 				var stats;
 				stats = new Stats();
 				document.getElementsByTagName("body")[0].appendChild( stats.dom );
 
+				//////////////////////////////////////////////////////////////////////////////////
+				//		RENDER FUNCTION
+				//////////////////////////////////////////////////////////////////////////////////
 				var clock = new THREE.Clock();
 				var tick = function() {
 					arScene.process();
 
 					requestAnimationFrame(tick);
 
+					// bird fly
 					if(fly == true){
 						bird.position.x -= 1
 						// bird.position.y -= 1
 						bird.position.z += 1
 					}
 
+					// bird model repostion
 					if(reposi == true){
 						bird.position.x = modelX;
 						bird.position.y = modelY;
 						bird.position.z = modelZ;
-
 						reposi = false;
 					}
 
-					if(bird != null){
-						bird.scale.set(s, s, s)
-					}
-
-
+					// play animation
 					var delta = clock.getDelta();
-
 					for ( var i = 0; i < mixers.length; i ++ ) {
-
 						mixers[ i ].update( delta );
-
 					}
 
+					// update
 					stats.update();
 					arScene.renderOn(renderer);
 				};
