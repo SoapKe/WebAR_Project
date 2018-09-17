@@ -114,12 +114,14 @@
 			var scene = new THREE.Scene();
 			var camera = new THREE.Camera();
 			camera.matrixAutoUpdate = false;
+			camera.projectionMatrix.fromArray(this.getCameraMatrix());
 			// debug
 			if (typeof camera.projectionMatrix.elements.set === "function") {
 						camera.projectionMatrix.elements.set(this.getCameraMatrix());
 			} else {
 				camera.projectionMatrix.elements=[].slice.call(this.getCameraMatrix());
-			}			
+			}
+						
 			scene.add(camera);
 
 
