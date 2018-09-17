@@ -41,7 +41,7 @@
 
 	window.ARThreeOnLoad = function() {
 
-		ARController.getUserMediaThreeScene({maxARVideoSize: 640, cameraParam: 'data/camera_para.dat',
+		ARController.getUserMediaThreeScene({maxARVideoSize: 640, cameraParam: 'data/camera_para.dat', facingMode = "environment",
 			onSuccess: function(arScene, arController, arCamera) {
 
 				// Initialize Three.js renderer
